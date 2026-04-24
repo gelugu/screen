@@ -44,6 +44,7 @@ func LoadConfig() *Config {
 	v.SetDefault("log_level", "info")
 	v.SetDefault("port", 8080)
 	v.SetDefault("metrics_port", 9090)
+	v.SetDefault("otp", "")
 
 	v.SetDefault("recaptcha.secret", "")
 	v.SetDefault("recaptcha.site_key", "")

@@ -1,8 +1,10 @@
 # screen
 
 [![CI](https://github.com/gelugu/screen/actions/workflows/ci.yaml/badge.svg)](https://github.com/gelugu/screen/actions/workflows/ci.yaml)
+[![Load Tests](https://github.com/gelugu/screen/actions/workflows/loadtest.yaml/badge.svg)](https://github.com/gelugu/screen/actions/workflows/loadtest.yaml)
 [![Docker](https://img.shields.io/docker/v/gelugu/screen?label=docker&sort=semver)](https://hub.docker.com/r/gelugu/screen)
 [![Go](https://img.shields.io/badge/go-1.24-blue)](https://go.dev)
+[![Quality gate](https://sonarcloud.io/api/project_badges/quality_gate?project=gelugu_screen)](https://sonarcloud.io/summary/new_code?id=gelugu_screen)
 
 A lightweight reverse proxy that sits in front of any number of upstream services and gates access with bot protection (reCAPTCHA v3) and OTP authentication — configured in a single YAML file, deployed as a single binary.
 
@@ -39,8 +41,9 @@ A lightweight reverse proxy that sits in front of any number of upstream service
 8. [Status endpoint](#status-endpoint)
 9. [Running](#running)
 10. [Local testing](#local-testing)
-11. [Metrics](#metrics)
-12. [Logs](#logs)
+11. [Load testing](#load-testing)
+12. [Metrics](#metrics)
+13. [Logs](#logs)
 
 ---
 
@@ -472,6 +475,32 @@ curl -b jar.txt http://localhost:8080/
 ```bash
 curl http://localhost:9090/metrics | grep screen_
 ```
+
+---
+
+## Load testing
+
+Load tests live in `proxy/load_test.go` behind the `loadtest` build tag so they never run during regular `go test ./...`.
+
+```bash
+go test -tags loadtest -run TestLoad -v -timeout 120s ./proxy/
+```
+
+Three scenarios, each running at 100 req/s for 5 seconds (500 requests total):
+
+| Test | What it measures |
+|---|---|
+| `TestLoad_NoProtection` | Raw proxy throughput — no auth, just reverse-proxy overhead |
+| `TestLoad_OTP_VerifiedSession` | Hot path — every request carries a valid session cookie |
+| `TestLoad_OTP_ChallengeRedirects` | Challenge gate — every request hits the 302 redirect path |
+
+Each test logs a one-line summary and fails if p99 latency exceeds 50 ms or any request returns an unexpected status code:
+
+```
+load_test.go:79: requests=500   success=100.0%  p50=792µs   p95=1.2ms   p99=2.5ms   throughput=100 req/s
+```
+
+Load tests run automatically on every push to `main` in a separate workflow, in parallel with the unit test job.
 
 ---
 

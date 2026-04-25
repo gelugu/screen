@@ -1,0 +1,19 @@
+name: Load Tests
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  loadtest:
+    name: Load Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run load tests
+        run: go test -tags loadtest -run TestLoad -v -timeout 120s ./proxy/

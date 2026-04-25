@@ -203,21 +203,6 @@ func TestIsVerified_CaptchaAndOTP_RequiresBoth(t *testing.T) {
 
 // --- helpers ---
 
-func TestSafeBack(t *testing.T) {
-	tests := []struct{ in, want string }{
-		{"/page", "/page"},
-		{"/", "/"},
-		{"", "/"},
-		{"http://evil.com", "/"},
-		{"javascript:alert(1)", "/"},
-	}
-	for _, tt := range tests {
-		if got := safeBack(tt.in); got != tt.want {
-			t.Errorf("safeBack(%q) = %q, want %q", tt.in, got, tt.want)
-		}
-	}
-}
-
 func TestHostOnly(t *testing.T) {
 	tests := []struct{ in, want string }{
 		{"example.com", "example.com"},

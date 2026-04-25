@@ -19,6 +19,8 @@ type sessionStore interface {
 	verified(r *http.Request, key string) bool
 	mark(id, key string)
 	count() int
+	storeBack(url string) string
+	loadBack(token string) string
 }
 
 func newSessionStoreFromConfig(cfg configuration.RedisConfig) (sessionStore, error) {
@@ -29,12 +31,17 @@ func newSessionStoreFromConfig(cfg configuration.RedisConfig) (sessionStore, err
 }
 
 type memSessionStore struct {
-	mu   sync.RWMutex
-	data map[string]map[string]bool
+	mu      sync.RWMutex
+	data    map[string]map[string]bool
+	backsMu sync.Mutex
+	backs   map[string]string
 }
 
 func newSessionStore() *memSessionStore {
-	return &memSessionStore{data: make(map[string]map[string]bool)}
+	return &memSessionStore{
+		data:  make(map[string]map[string]bool),
+		backs: make(map[string]string),
+	}
 }
 
 func (s *memSessionStore) id(r *http.Request) (string, bool) {
@@ -57,14 +64,7 @@ func (s *memSessionStore) ensure(w http.ResponseWriter, r *http.Request) string 
 	s.mu.Lock()
 	s.data[id] = make(map[string]bool)
 	s.mu.Unlock()
-	http.SetCookie(w, &http.Cookie{
-		Name:     sessionCookie,
-		Value:    id,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteLaxMode,
-	})
+	setSessionCookie(w, id)
 	metrics.SessionsCreatedTotal.Inc()
 	metrics.SessionsActive.Inc()
 	sessionLog.Debugf("new session %s", id[:8])
@@ -97,6 +97,36 @@ func (s *memSessionStore) count() int {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return len(s.data)
+}
+
+func (s *memSessionStore) storeBack(url string) string {
+	token := randHex()
+	s.backsMu.Lock()
+	s.backs[token] = url
+	s.backsMu.Unlock()
+	return token
+}
+
+func (s *memSessionStore) loadBack(token string) string {
+	s.backsMu.Lock()
+	defer s.backsMu.Unlock()
+	url, ok := s.backs[token]
+	if !ok {
+		return "/"
+	}
+	delete(s.backs, token)
+	return url
+}
+
+func setSessionCookie(w http.ResponseWriter, id string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     sessionCookie,
+		Value:    id,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+	})
 }
 
 func randHex() string {

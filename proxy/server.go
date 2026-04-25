@@ -159,7 +159,7 @@ func (s *Server) redirectToChallenge(w http.ResponseWriter, r *http.Request, sit
 	q := url.Values{}
 	q.Set("d", site.Domain)
 	q.Set("p", site.Path)
-	q.Set("back", r.URL.RequestURI())
+	q.Set("back", s.sessions.storeBack(r.URL.RequestURI()))
 
 	var path string
 	switch site.Protection {
@@ -194,17 +194,6 @@ func (s *Server) findSite(domain, path string) *configuration.SiteConfig {
 
 func siteKey(site *configuration.SiteConfig) string {
 	return site.Domain + "|" + site.Path
-}
-
-func safeBack(back string) string {
-	if back == "" || back[0] != '/' {
-		return "/"
-	}
-	u, err := url.Parse(back)
-	if err != nil || u.Host != "" || u.Scheme != "" {
-		return "/"
-	}
-	return back
 }
 
 func hostOnly(host string) string {

@@ -9,7 +9,10 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-const sessionTTL = 7 * 24 * time.Hour
+const (
+	sessionTTL = 7 * 24 * time.Hour
+	backTTL    = 30 * time.Minute
+)
 
 type redisSessionStore struct {
 	client *redis.Client
@@ -52,14 +55,7 @@ func (s *redisSessionStore) ensure(w http.ResponseWriter, r *http.Request) strin
 	if _, err := pipe.Exec(ctx); err != nil {
 		sessionLog.Errorf("redis ensure: %v", err)
 	}
-	http.SetCookie(w, &http.Cookie{
-		Name:     sessionCookie,
-		Value:    id,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteLaxMode,
-	})
+	setSessionCookie(w, id)
 	metrics.SessionsCreatedTotal.Inc()
 	metrics.SessionsActive.Inc()
 	sessionLog.Debugf("new session %s", id[:8])
@@ -103,4 +99,25 @@ func (s *redisSessionStore) count() int {
 		sessionLog.Errorf("redis count: %v", err)
 	}
 	return n
+}
+
+func (s *redisSessionStore) storeBack(url string) string {
+	token := randHex()
+	ctx := context.Background()
+	if err := s.client.Set(ctx, s.prefix+"back:"+token, url, backTTL).Err(); err != nil {
+		sessionLog.Errorf("redis storeBack: %v", err)
+	}
+	return token
+}
+
+func (s *redisSessionStore) loadBack(token string) string {
+	ctx := context.Background()
+	url, err := s.client.GetDel(ctx, s.prefix+"back:"+token).Result()
+	if err != nil {
+		if err != redis.Nil {
+			sessionLog.Errorf("redis loadBack: %v", err)
+		}
+		return "/"
+	}
+	return url
 }

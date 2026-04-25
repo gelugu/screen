@@ -47,7 +47,7 @@ func (s *Server) otpForm(w http.ResponseWriter, r *http.Request) {
 	data := pageData{
 		Domain: domain,
 		Path:   path,
-		Back:   safeBack(q.Get("back")),
+		Back:   q.Get("back"),
 		Error:  hasError,
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -60,7 +60,7 @@ func (s *Server) otpSubmit(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	domain := r.FormValue("d")
 	path := r.FormValue("p")
-	back := safeBack(r.FormValue("back"))
+	backToken := r.FormValue("back")
 	code := r.FormValue("code")
 
 	site := s.findSite(domain, path)
@@ -76,7 +76,7 @@ func (s *Server) otpSubmit(w http.ResponseWriter, r *http.Request) {
 		q := url.Values{}
 		q.Set("d", domain)
 		q.Set("p", path)
-		q.Set("back", back)
+		q.Set("back", backToken)
 		q.Set("err", "1")
 		http.Redirect(w, r, "/__protect/otp?"+q.Encode(), http.StatusFound)
 		return
@@ -86,7 +86,7 @@ func (s *Server) otpSubmit(w http.ResponseWriter, r *http.Request) {
 	s.sessions.mark(id, siteKey(site)+markOTP)
 	metrics.ChallengesTotal.WithLabelValues(domain, "otp", "passed").Inc()
 	handlerLog.Infof("OTP verified domain=%s path=%q session=%s", domain, path, id[:8])
-	http.Redirect(w, r, back, http.StatusFound)
+	http.Redirect(w, r, s.sessions.loadBack(backToken), http.StatusFound)
 }
 
 func (s *Server) captchaForm(w http.ResponseWriter, r *http.Request) {
@@ -100,7 +100,7 @@ func (s *Server) captchaForm(w http.ResponseWriter, r *http.Request) {
 	data := pageData{
 		Domain:           domain,
 		Path:             path,
-		Back:             safeBack(q.Get("back")),
+		Back:             q.Get("back"),
 		Error:            hasError,
 		RecaptchaSiteKey: s.cfg.Recaptcha.SiteKey,
 	}
@@ -114,7 +114,7 @@ func (s *Server) captchaSubmit(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	domain := r.FormValue("d")
 	path := r.FormValue("p")
-	back := safeBack(r.FormValue("back"))
+	backToken := r.FormValue("back")
 	token := r.FormValue("g-recaptcha-response")
 
 	site := s.findSite(domain, path)
@@ -129,7 +129,7 @@ func (s *Server) captchaSubmit(w http.ResponseWriter, r *http.Request) {
 		q := url.Values{}
 		q.Set("d", domain)
 		q.Set("p", path)
-		q.Set("back", back)
+		q.Set("back", backToken)
 		q.Set("err", "1")
 		http.Redirect(w, r, "/__protect/captcha?"+q.Encode(), http.StatusFound)
 		return
@@ -143,7 +143,7 @@ func (s *Server) captchaSubmit(w http.ResponseWriter, r *http.Request) {
 		q := url.Values{}
 		q.Set("d", domain)
 		q.Set("p", path)
-		q.Set("back", back)
+		q.Set("back", backToken)
 		q.Set("err", "1")
 		http.Redirect(w, r, "/__protect/captcha?"+q.Encode(), http.StatusFound)
 		return
@@ -153,5 +153,5 @@ func (s *Server) captchaSubmit(w http.ResponseWriter, r *http.Request) {
 	s.sessions.mark(id, siteKey(site)+markCaptcha)
 	metrics.ChallengesTotal.WithLabelValues(domain, "captcha", "passed").Inc()
 	handlerLog.Infof("captcha verified domain=%s path=%q session=%s", domain, path, id[:8])
-	http.Redirect(w, r, back, http.StatusFound)
+	http.Redirect(w, r, s.sessions.loadBack(backToken), http.StatusFound)
 }

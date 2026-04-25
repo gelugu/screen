@@ -24,7 +24,7 @@ var serverLog = logging.NewLogger("server")
 
 type Server struct {
 	cfg         *configuration.Config
-	sessions    *SessionStore
+	sessions    sessionStore
 	proxies     map[string]*httputil.ReverseProxy
 	otpTmpl     *template.Template
 	captchaTmpl *template.Template
@@ -41,9 +41,14 @@ func NewServer(cfg *configuration.Config) (*Server, error) {
 		return nil, err
 	}
 
+	sessions, err := newSessionStoreFromConfig(cfg.Redis)
+	if err != nil {
+		return nil, err
+	}
+
 	s := &Server{
 		cfg:         cfg,
-		sessions:    newSessionStore(),
+		sessions:    sessions,
 		proxies:     make(map[string]*httputil.ReverseProxy),
 		otpTmpl:     otpTmpl,
 		captchaTmpl: captchaTmpl,

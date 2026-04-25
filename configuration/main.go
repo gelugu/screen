@@ -16,7 +16,13 @@ type Config struct {
 	MetricsPort int             `mapstructure:"metrics_port"`
 	OTPCode     string          `mapstructure:"otp"`
 	Recaptcha   RecaptchaConfig `mapstructure:"recaptcha"`
+	Redis       RedisConfig     `mapstructure:"redis"`
 	Sites       []SiteConfig    `mapstructure:"sites"`
+}
+
+type RedisConfig struct {
+	URL       string `mapstructure:"url"`
+	KeyPrefix string `mapstructure:"key_prefix"`
 }
 
 type RecaptchaConfig struct {
@@ -49,12 +55,15 @@ func LoadConfig() *Config {
 
 	v.SetDefault("log_level", "info")
 	v.SetDefault("port", 8080)
-	v.SetDefault("metrics_port", 9090)
+	v.SetDefault("metrics_port", 0)
 	v.SetDefault("otp", "")
 
 	v.SetDefault("recaptcha.secret", "")
 	v.SetDefault("recaptcha.site_key", "")
 	v.SetDefault("recaptcha.threshold", 0.5)
+
+	v.SetDefault("redis.url", "")
+	v.SetDefault("redis.key_prefix", "screen:")
 
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()

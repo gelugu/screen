@@ -47,6 +47,7 @@ func (s *SessionStore) ensure(w http.ResponseWriter, r *http.Request) string {
 		Value:    id,
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
 	})
 	metrics.SessionsCreatedTotal.Inc()

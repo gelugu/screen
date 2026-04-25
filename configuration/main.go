@@ -33,6 +33,12 @@ type SiteConfig struct {
 	Mode       string `mapstructure:"mode"`       // browser (default) | api
 }
 
+const (
+	protectionCaptcha    = "captcha"
+	protectionOTP        = "otp"
+	protectionCaptchaOTP = "captcha+otp"
+)
+
 var (
 	config *Config
 	log    = logrus.New().WithField("package", "configuration")
@@ -74,28 +80,12 @@ func validateConfig(cfg *Config) error {
 	needsCaptcha := false
 	needsOTP := false
 	for i, site := range cfg.Sites {
-		if site.Domain == "" {
-			return fmt.Errorf("sites[%d]: domain is required", i)
+		nc, no, err := validateSite(i, site)
+		if err != nil {
+			return err
 		}
-		if site.Upstream == "" {
-			return fmt.Errorf("sites[%d]: upstream is required", i)
-		}
-		switch site.Protection {
-		case "captcha", "otp", "captcha+otp", "":
-		default:
-			return fmt.Errorf("sites[%d]: unknown protection %q", i, site.Protection)
-		}
-		switch site.Mode {
-		case "browser", "api", "":
-		default:
-			return fmt.Errorf("sites[%d]: unknown mode %q (browser | api)", i, site.Mode)
-		}
-		if site.Protection == "captcha" || site.Protection == "captcha+otp" {
-			needsCaptcha = true
-		}
-		if site.Protection == "otp" || site.Protection == "captcha+otp" {
-			needsOTP = true
-		}
+		needsCaptcha = needsCaptcha || nc
+		needsOTP = needsOTP || no
 	}
 	if needsCaptcha && (cfg.Recaptcha.Secret == "" || cfg.Recaptcha.SiteKey == "") {
 		return fmt.Errorf("recaptcha.secret and recaptcha.site_key are required when any site uses captcha protection")
@@ -104,6 +94,28 @@ func validateConfig(cfg *Config) error {
 		return fmt.Errorf("otp is required when any site uses otp protection")
 	}
 	return nil
+}
+
+func validateSite(i int, site SiteConfig) (needsCaptcha, needsOTP bool, err error) {
+	if site.Domain == "" {
+		return false, false, fmt.Errorf("sites[%d]: domain is required", i)
+	}
+	if site.Upstream == "" {
+		return false, false, fmt.Errorf("sites[%d]: upstream is required", i)
+	}
+	switch site.Protection {
+	case protectionCaptcha, protectionOTP, protectionCaptchaOTP, "":
+	default:
+		return false, false, fmt.Errorf("sites[%d]: unknown protection %q", i, site.Protection)
+	}
+	switch site.Mode {
+	case "browser", "api", "":
+	default:
+		return false, false, fmt.Errorf("sites[%d]: unknown mode %q (browser | api)", i, site.Mode)
+	}
+	needsCaptcha = site.Protection == protectionCaptcha || site.Protection == protectionCaptchaOTP
+	needsOTP = site.Protection == protectionOTP || site.Protection == protectionCaptchaOTP
+	return needsCaptcha, needsOTP, nil
 }
 
 func GetConfig() *Config {

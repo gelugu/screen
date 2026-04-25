@@ -4,6 +4,7 @@
 [![Load Tests](https://github.com/gelugu/screen/actions/workflows/loadtest.yaml/badge.svg)](https://github.com/gelugu/screen/actions/workflows/loadtest.yaml)
 [![Docker](https://img.shields.io/docker/v/gelugu/screen?label=docker&sort=semver)](https://hub.docker.com/r/gelugu/screen)
 [![Go](https://img.shields.io/badge/go-1.24-blue)](https://go.dev)
+
 [![Quality gate](https://sonarcloud.io/api/project_badges/quality_gate?project=gelugu_screen)](https://sonarcloud.io/summary/new_code?id=gelugu_screen)
 
 A lightweight reverse proxy that sits in front of any number of upstream services and gates access with bot protection (reCAPTCHA v3) and OTP authentication — configured in a single YAML file, deployed as a single binary.

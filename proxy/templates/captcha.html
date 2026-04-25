@@ -158,25 +158,21 @@ button:hover { background: #ff0060; color: #000; }
     <h1>BLOCKED<span class="cursor">_</span></h1>
     <p class="sub">&gt;_ verification failed</p>
     <div class="err">▸ SCORE BELOW THRESHOLD — SUSPECTED BOT ACTIVITY</div>
-    <form id="captcha-form" method="POST" action="/__protect/captcha">
-      <input type="hidden" name="d" value="{{.Domain}}">
-      <input type="hidden" name="p" value="{{.Path}}">
-      <input type="hidden" name="back" value="{{.Back}}">
-      <input type="hidden" name="g-recaptcha-response" id="token">
-      <button type="button" onclick="runCaptcha()">[ RETRY ]</button>
-    </form>
     {{else}}
     <h1>SCANNING<span class="cursor">_</span></h1>
     <p class="sub">&gt;_ analyzing request signature</p>
     <div class="bar-wrap"><div class="bar"></div></div>
     <p class="status-line">STATUS: <span id="status-text">INITIALIZING</span></p>
+    {{end}}
     <form id="captcha-form" method="POST" action="/__protect/captcha">
       <input type="hidden" name="d" value="{{.Domain}}">
       <input type="hidden" name="p" value="{{.Path}}">
       <input type="hidden" name="back" value="{{.Back}}">
       <input type="hidden" name="g-recaptcha-response" id="token">
+      {{if .Error}}
+      <button type="button" onclick="runCaptcha()">[ RETRY ]</button>
+      {{end}}
     </form>
-    {{end}}
   </div>
 </div>
 <script>

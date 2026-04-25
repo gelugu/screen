@@ -13,6 +13,13 @@ import (
 	"time"
 )
 
+const (
+	markCaptcha   = ":captcha"
+	markOTP       = ":otp"
+	challengePath = "/__protect/captcha"
+	otpPath       = "/__protect/otp"
+)
+
 var serverLog = logging.NewLogger("server")
 
 type Server struct {
@@ -133,11 +140,11 @@ func (s *Server) isVerified(r *http.Request, site *configuration.SiteConfig) boo
 	k := siteKey(site)
 	switch site.Protection {
 	case "captcha":
-		return s.sessions.verified(r, k+":captcha")
+		return s.sessions.verified(r, k+markCaptcha)
 	case "otp":
-		return s.sessions.verified(r, k+":otp")
+		return s.sessions.verified(r, k+markOTP)
 	case "captcha+otp":
-		return s.sessions.verified(r, k+":captcha") && s.sessions.verified(r, k+":otp")
+		return s.sessions.verified(r, k+markCaptcha) && s.sessions.verified(r, k+markOTP)
 	}
 	return true
 }
@@ -152,17 +159,17 @@ func (s *Server) redirectToChallenge(w http.ResponseWriter, r *http.Request, sit
 	var path string
 	switch site.Protection {
 	case "captcha":
-		path = "/__protect/captcha"
+		path = challengePath
 		metrics.ChallengesTotal.WithLabelValues(site.Domain, "captcha", "issued").Inc()
 	case "otp":
-		path = "/__protect/otp"
+		path = otpPath
 		metrics.ChallengesTotal.WithLabelValues(site.Domain, "otp", "issued").Inc()
 	case "captcha+otp":
-		if !s.sessions.verified(r, k+":captcha") {
-			path = "/__protect/captcha"
+		if !s.sessions.verified(r, k+markCaptcha) {
+			path = challengePath
 			metrics.ChallengesTotal.WithLabelValues(site.Domain, "captcha", "issued").Inc()
 		} else {
-			path = "/__protect/otp"
+			path = otpPath
 			metrics.ChallengesTotal.WithLabelValues(site.Domain, "otp", "issued").Inc()
 		}
 	}
@@ -186,6 +193,10 @@ func siteKey(site *configuration.SiteConfig) string {
 
 func safeBack(back string) string {
 	if back == "" || back[0] != '/' {
+		return "/"
+	}
+	u, err := url.Parse(back)
+	if err != nil || u.Host != "" || u.Scheme != "" {
 		return "/"
 	}
 	return back

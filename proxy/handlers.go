@@ -83,7 +83,7 @@ func (s *Server) otpSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := s.sessions.ensure(w, r)
-	s.sessions.mark(id, siteKey(site)+":otp")
+	s.sessions.mark(id, siteKey(site)+markOTP)
 	metrics.ChallengesTotal.WithLabelValues(domain, "otp", "passed").Inc()
 	handlerLog.Infof("OTP verified domain=%s path=%q session=%s", domain, path, id[:8])
 	http.Redirect(w, r, back, http.StatusFound)
@@ -150,7 +150,7 @@ func (s *Server) captchaSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := s.sessions.ensure(w, r)
-	s.sessions.mark(id, siteKey(site)+":captcha")
+	s.sessions.mark(id, siteKey(site)+markCaptcha)
 	metrics.ChallengesTotal.WithLabelValues(domain, "captcha", "passed").Inc()
 	handlerLog.Infof("captcha verified domain=%s path=%q session=%s", domain, path, id[:8])
 	http.Redirect(w, r, back, http.StatusFound)

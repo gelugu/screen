@@ -145,7 +145,7 @@ h1 {
 
 .err {
   border: 1px solid #ff0060;
-  background: rgba(255,0,96,.06);
+  background: #0f0002;
   color: #ff0060;
   font-size: 11px;
   letter-spacing: 2px;
@@ -246,8 +246,9 @@ button:active {
       <input type="hidden" name="d" value="{{.Domain}}">
       <input type="hidden" name="p" value="{{.Path}}">
       <input type="hidden" name="back" value="{{.Back}}">
-      <label>&gt;_ access code</label>
+      <label for="code">&gt;_ access code</label>
       <input type="text"
+             id="code"
              name="code"
              autocomplete="off"
              autofocus
